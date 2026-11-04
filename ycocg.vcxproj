@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Debug</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7F8E9D0A-1B2C-3D4E-5F6A-7B8C9D0E1F2A}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == ''">
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == ''">
+    <Platform>x64</Platform>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)bin\</OutDir>
+    <ObjDir>$(MSBuildThisFileDirectory)bin\obj\</ObjDir>
+    <IntDir>$(MSBuildThisFileDirectory)bin\obj\$(Configuration)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <CFlags>/c /Zi /Od /MDd /W3 /D "_DEBUG"</CFlags>
+    <LFlags>/DEBUG /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MACHINE:X64</LFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <CFlags>/c /O2 /Ob2 /Oi /Ot /Gy /GF /GL /GS- /MD /W3 /D "NDEBUG"</CFlags>
+    <LFlags>/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MACHINE:X64</LFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <CFlags>/c /Zi /Od /MDd /W3 /D "_DEBUG"</CFlags>
+    <LFlags>/DEBUG /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MACHINE:X86</LFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <CFlags>/c /O2 /Ob2 /Oi /Ot /Gy /GF /GL /GS- /MD /W3 /D "NDEBUG"</CFlags>
+    <LFlags>/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /MACHINE:X86</LFlags>
+  </PropertyGroup>
+  <ItemGroup>
+    <AppSources Include="src\ycocg_tool.c" />
+    <AppSources Include="src\test_simd_rand.c" />
+    <AppSources Include="src\test_simd_full.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="Build" DependsOnTargets="Clean">
+    <MakeDir Directories="$(OutDir);$(IntDir)" />
+    <Exec EchoOff="true" Condition="'$(Configuration)' == 'Debug'" Command="set &quot;PATH=$(ExecutablePath);%PATH%&quot; &amp;&amp; cl.exe $(CFlags) /Fo&quot;$(IntDir)%(AppSources.Filename).obj&quot; /Fd&quot;$(IntDir)vc.pdb&quot; /I&quot;$(MSBuildThisFileDirectory)include&quot; &quot;%(AppSources.FullPath)&quot;" />
+    <Exec EchoOff="true" Condition="'$(Configuration)' == 'Release'" Command="set &quot;PATH=$(ExecutablePath);%PATH%&quot; &amp;&amp; cl.exe $(CFlags) /Fo&quot;$(IntDir)%(AppSources.Filename).obj&quot; /I&quot;$(MSBuildThisFileDirectory)include&quot; &quot;%(AppSources.FullPath)&quot;" />
+    <Exec EchoOff="true" Condition="'$(Configuration)' == 'Debug'" Command="set &quot;PATH=$(ExecutablePath);%PATH%&quot; &amp;&amp; set &quot;LIB=$(LibraryPath)&quot; &amp;&amp; link.exe $(LFlags) /OUT:&quot;$(OutDir)%(AppSources.Filename).exe&quot; /PDB:&quot;$(OutDir)%(AppSources.Filename).pdb&quot; &quot;$(IntDir)%(AppSources.Filename).obj&quot;" />
+    <Exec EchoOff="true" Condition="'$(Configuration)' == 'Release'" Command="set &quot;PATH=$(ExecutablePath);%PATH%&quot; &amp;&amp; set &quot;LIB=$(LibraryPath)&quot; &amp;&amp; link.exe $(LFlags) /OUT:&quot;$(OutDir)%(AppSources.Filename).exe&quot; &quot;$(IntDir)%(AppSources.Filename).obj&quot;" />
+  </Target>
+  <Target Name="Clean">
+    <RemoveDir Directories="$(ObjDir)" />
+    <Delete Files="@(AppSources->'$(OutDir)%(Filename).exe');@(AppSources->'$(OutDir)%(Filename).pdb')" />
+  </Target>
+  <Target Name="Rebuild" DependsOnTargets="Build" />
+</Project>
