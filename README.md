@@ -4,9 +4,9 @@
 
 While YCoCg seems to be the modern standard for Luma + Chrominance encoding I could not find an integer based encoder/decoder implementation that actually worked as expected when tested. The [original paper](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/06/Malvar_Sullivan_YCoCg-R_JVT-I014r3-2.pdf) is also not very clear on some important points which can make correct implementation difficult.
 
-The header ```ycocg.h``` is entirely self contained and provides inline functions for color space conversion of single pixels, rows of pixels as well as entire images. Additionally, SIMD aceleration is implemented and used automatically when available. 
+The header [ycocg.h](https://github.com/aaron-clovsky/ycocg/blob/main/include/ycocg.h) is entirely self contained and provides inline functions for color space conversion of single pixels, rows of pixels as well as entire images. Additionally, SIMD aceleration is implemented and used automatically when available.
 
-Currently ```ycocg.h``` provides functions for:
+Currently [ycocg.h](https://github.com/aaron-clovsky/ycocg/blob/main/include/ycocg.h) provides functions for:
 - Conversion of RGB values to and from YCoCg
 - 4:2:2 compression and decompression from/to BGRA images with SIMD acceleration (and associated utilities)
 
@@ -109,7 +109,7 @@ Tests the results of SIMD accelerated functions against their scalar reference i
 
 ## NOTES
 
-- ```ycocg.h``` is C99+ and C++98+ compatible, however it is also C89 compatible if ```stdint.h``` is available or if the types: ```int8_t```, ```uint8_t```, ```int16_t```, ```uint32_t ``` and ```uint64_t ``` are typedef'd prior to inclusion and ```YCOCG_C89``` is #define'd.
+- [ycocg.h](https://github.com/aaron-clovsky/ycocg/blob/main/include/ycocg.h) is C99+ and C++98+ compatible, however it is also C89 compatible if ```stdint.h``` is available or if the types: ```int8_t```, ```uint8_t```, ```int16_t```, ```uint32_t ``` and ```uint64_t ``` are typedef'd prior to inclusion and ```YCOCG_C89``` is #define'd.
 - ```make style``` is implemented to keep code within style guidelines, it requires clang-format-21
 - ```make lint``` is implemented to help check for warnings, it requires: gcc, g++, clang, clang++ and cppcheck
 
