@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
-[[ $# -ne 1 ]] && { printf 'Usage: %s <TEST>\n tests: ' \
-                           'yuy2_from_bgrx | yuy2_to_bgra\n' "$0"; exit 2; }
+if [[ $# -ne 1 ]]; then
+    printf 'Usage: %s <TEST>\n tests: yuy2_from_bgrx | yuy2_to_bgra\n' "$0"
+    exit 2;
+fi
 
 # Paths
 DIR_SCRIPT="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
