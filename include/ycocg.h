@@ -68,6 +68,40 @@ Basic macros
     #define YCOCG_RESTRICT
 #endif
 
+/* thread_local support */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
+    #define YCOCG_THREAD_LOCAL thread_local
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    #define YCOCG_THREAD_LOCAL _Thread_local
+#elif defined(__cplusplus) && __cplusplus >= 201103L
+    #define YCOCG_THREAD_LOCAL thread_local
+#elif defined(__GNUC__) || defined(__clang__)
+    #define YCOCG_THREAD_LOCAL __thread
+#elif defined(_MSC_VER)
+    #define YCOCG_THREAD_LOCAL __declspec(thread)
+#else
+    #define YCOCG_THREAD_LOCAL
+#endif
+
+/*******************************************************************************
+SIMD support
+*******************************************************************************/
+/* Define AVX2 implementation on x86/x64 */
+#ifndef YCOCG_NO_SIMD
+    #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || \
+        defined(_M_IX86)
+        #include <immintrin.h>
+
+        #if defined(__GNUC__) || defined(__clang__)
+            #define YCOCG_AVX2 __attribute__((target("avx2")))
+        #else
+            #define YCOCG_AVX2
+        #endif
+
+        #define YCOCG_HAS_SIMD
+    #endif
+#endif
+
 /*******************************************************************************
 User basic conversion function definitions
 *******************************************************************************/
@@ -287,55 +321,20 @@ void ycocg_yuy2_to_bgra_scalar(uint32_t                        width,
                                uint32_t * YCOCG_RESTRICT       out);
 
 /*******************************************************************************
-Internal SIMD macros
-*******************************************************************************/
-/* Define AVX2 implementation on x86/x64 */
-#ifndef YCOCG_NO_SIMD
-    #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || \
-        defined(_M_IX86)
-        #include <immintrin.h>
-
-        #if defined(__GNUC__) || defined(__clang__)
-            #define YCOCG_AVX2 __attribute__((target("avx2")))
-        #else
-            #define YCOCG_AVX2
-        #endif
-    #endif
-#endif
-
-/* SIMD detection */
-#ifdef YCOCG_AVX2
-    #define DETECT_SIMD(n)                                                 \
-        static enum ycocg_simd n = YCOCG_SIMD_INIT;                        \
-                                                                           \
-        do                                                                 \
-            if (n == YCOCG_SIMD_INIT) {                                    \
-                n = ycocg_simd_avx2() ? YCOCG_SIMD_AVX2 : YCOCG_SIMD_NONE; \
-            }                                                              \
-        while (0)
-#else
-    #define DETECT_SIMD(n)                   \
-        enum ycocg_simd n = YCOCG_SIMD_NONE; \
-                                             \
-        do {                                 \
-        } while (0)
-#endif
-
-/*******************************************************************************
 Internal SIMD utilities
 *******************************************************************************/
 #ifdef YCOCG_AVX2
 YCOCG_INLINE
-int ycocg_simd_avx2(void)
+enum ycocg_simd ycocg_simd_avx2(void)
 {
     #if defined(__GNUC__) || defined(__clang__)
-    return __builtin_cpu_supports("avx2");
+    return __builtin_cpu_supports("avx2") ? YCOCG_SIMD_AVX2 : YCOCG_SIMD_NONE;
     #elif defined(_MSC_VER)
     int cpu_info[4];
     __cpuidex(cpu_info, 7, 0);
-    return (cpu_info[1] & (1 << 5)) != 0;
+    return ((cpu_info[1] & (1 << 5)) != 0) ? YCOCG_SIMD_AVX2 : YCOCG_SIMD_NONE;
     #else
-    return 0;
+    return YCOCG_SIMD_NONE;
     #endif
 }
 #endif
@@ -447,15 +446,15 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_to_bgra_avx2(const uint32_t * in,
         -1, 14, -1, 12, -1, 10, -1, 8,
         -1, 6,  -1, 4,  -1, 2,  -1, 0);
     const __m256i ymm_shuf_co = _mm256_set_epi8(
-        -1, 29, -1, 29, -1, 25, -1, 25,
-        -1, 21, -1, 21, -1, 17, -1, 17,
-        -1, 13, -1, 13, -1, 9,  -1, 9,
-        -1, 5,  -1, 5,  -1, 1,  -1, 1);
+        29, -1, 29, -1, 25, -1, 25, -1,
+        21, -1, 21, -1, 17, -1, 17, -1,
+        13, -1, 13, -1,  9, -1,  9, -1,
+        5,  -1, 5,  -1, 1,  -1,  1, -1);
     const __m256i ymm_shuf_cg = _mm256_set_epi8(
-        -1, 31, -1, 31, -1, 27, -1, 27,
-        -1, 23, -1, 23, -1, 19, -1, 19,
-        -1, 15, -1, 15, -1, 11, -1, 11,
-        -1, 7,  -1, 7,  -1, 3,  -1, 3);
+        31, -1, 31, -1, 27, -1, 27, -1,
+        23, -1, 23, -1, 19, -1, 19, -1,
+        15, -1, 15, -1, 11, -1, 11, -1,
+        7,  -1, 7,  -1, 3,  -1,  3, -1);
     /* clang-format on */
 
     /* Raw macropixels */
@@ -468,7 +467,7 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_to_bgra_avx2(const uint32_t * in,
     __m256i ymm_br, ymm_ga;
     __m256i ymm_lo, ymm_hi;
     /* Output */
-    __m256i ymm_bgra0, ymm_bgra1;
+    __m256i ymm_bgra1, ymm_bgra2;
 
     /* Read macropixels */
     ymm_yuy2 = _mm256_loadu_si256((const __m256i *)in);
@@ -477,9 +476,7 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_to_bgra_avx2(const uint32_t * in,
     ymm_y  = _mm256_shuffle_epi8(ymm_yuy2, ymm_shuf_y);
     ymm_co = _mm256_shuffle_epi8(ymm_yuy2, ymm_shuf_co);
     ymm_cg = _mm256_shuffle_epi8(ymm_yuy2, ymm_shuf_cg);
-    ymm_co = _mm256_slli_epi16(ymm_co, 8);
     ymm_co = _mm256_srai_epi16(ymm_co, 8);
-    ymm_cg = _mm256_slli_epi16(ymm_cg, 8);
     ymm_cg = _mm256_srai_epi16(ymm_cg, 8);
 
     /* Convert Y, Co and Cg to R, G and B */
@@ -497,12 +494,12 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_to_bgra_avx2(const uint32_t * in,
     ymm_ga    = _mm256_unpackhi_epi8(ymm_bg, ymm_ra);
     ymm_lo    = _mm256_unpacklo_epi8(ymm_br, ymm_ga);
     ymm_hi    = _mm256_unpackhi_epi8(ymm_br, ymm_ga);
-    ymm_bgra0 = _mm256_permute2x128_si256(ymm_lo, ymm_hi, 0x20);
-    ymm_bgra1 = _mm256_permute2x128_si256(ymm_lo, ymm_hi, 0x31);
+    ymm_bgra1 = _mm256_permute2x128_si256(ymm_lo, ymm_hi, 0x20);
+    ymm_bgra2 = _mm256_permute2x128_si256(ymm_lo, ymm_hi, 0x31);
 
     /* Write pixels */
-    _mm256_storeu_si256((__m256i *)out, ymm_bgra0);
-    _mm256_storeu_si256((__m256i *)(out + 8), ymm_bgra1);
+    _mm256_storeu_si256((__m256i *)out, ymm_bgra1);
+    _mm256_storeu_si256((__m256i *)(out + 8), ymm_bgra2);
 }
 #endif
 
@@ -635,9 +632,7 @@ void ycocg_yuy2_from_bgrx_row(const uint32_t * YCOCG_RESTRICT in,
                               uint32_t * YCOCG_RESTRICT       out,
                               uint32_t                        width)
 {
-    DETECT_SIMD(simd);
-
-    ycocg_yuy2_from_bgrx_row_body(in, out, width, simd);
+    ycocg_yuy2_from_bgrx_row_body(in, out, width, ycocg_simd_support());
 }
 
 YCOCG_INLINE
@@ -656,15 +651,13 @@ void ycocg_yuy2_from_bgrx(uint32_t                        width,
                           const uint32_t * YCOCG_RESTRICT in,
                           uint32_t * YCOCG_RESTRICT       out)
 {
-    DETECT_SIMD(simd);
-
     ycocg_yuy2_from_bgrx_body(width,
                               height,
                               in_stride,
                               out_stride,
                               in,
                               out,
-                              simd);
+                              ycocg_simd_support());
 }
 
 YCOCG_INLINE
@@ -689,9 +682,7 @@ void ycocg_yuy2_to_bgra_row(const uint32_t * YCOCG_RESTRICT in,
                             uint32_t * YCOCG_RESTRICT       out,
                             uint32_t                        width)
 {
-    DETECT_SIMD(simd);
-
-    ycocg_yuy2_to_bgra_row_body(in, out, width, simd);
+    ycocg_yuy2_to_bgra_row_body(in, out, width, ycocg_simd_support());
 }
 
 YCOCG_INLINE
@@ -710,15 +701,13 @@ void ycocg_yuy2_to_bgra(uint32_t                        width,
                         const uint32_t * YCOCG_RESTRICT in,
                         uint32_t * YCOCG_RESTRICT       out)
 {
-    DETECT_SIMD(simd);
-
     ycocg_yuy2_to_bgra_body(width,
                             height,
                             in_stride,
                             out_stride,
                             in,
                             out,
-                            simd);
+                            ycocg_simd_support());
 }
 
 YCOCG_INLINE
@@ -744,9 +733,21 @@ User utility function definitions
 YCOCG_INLINE
 enum ycocg_simd ycocg_simd_support(void)
 {
-    DETECT_SIMD(simd);
+#ifdef YCOCG_HAS_SIMD
+    static enum ycocg_simd simd = YCOCG_SIMD_INIT;
+
+    if (simd == YCOCG_SIMD_INIT) {
+    #ifdef YCOCG_AVX2
+        simd = ycocg_simd_avx2();
+    #else
+        simd = YCOCG_SIMD_NONE;
+    #endif
+    }
 
     return simd;
+#else
+    return YCOCG_SIMD_NONE;
+#endif
 }
 
 YCOCG_INLINE
