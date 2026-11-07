@@ -15,6 +15,7 @@ In addition to the provided header and tests, YCoCg to RGB decoder modules and t
 ## FUTURE DIRECTION
 
 - Support 4:2:0 compression and decompression
+- Support 4:4:4 compression and decompression
 - Support AVX512 and NEON
 - Support more pixel formats
 
