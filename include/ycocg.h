@@ -408,7 +408,6 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_from_bgrx_avx2(const uint32_t * in,
     /* Average neighboring chroma samples */
     ymm_co1 = _mm256_madd_epi16(ymm_co1, ymm_one16);
     ymm_co1 = _mm256_srai_epi32(ymm_co1, 1);
-
     ymm_cg1 = _mm256_madd_epi16(ymm_cg1, ymm_one16);
     ymm_cg1 = _mm256_srai_epi32(ymm_cg1, 1);
 
