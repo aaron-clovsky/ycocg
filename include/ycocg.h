@@ -362,13 +362,6 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_from_bgrx_avx2(const uint32_t * in,
     const __m256i ymm_weight_y  = _mm256_set1_epi32(0x00010201);
     const __m256i ymm_weight_co = _mm256_set1_epi32(0x000100FF);
     const __m256i ymm_weight_cg = _mm256_set1_epi32(0x00FF02FF);
-    /* clang-format off */
-    const __m256i ymm_shuf_chroma = _mm256_set_epi8(
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        30, 22, 28, 20, 26, 18, 24, 16,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        14,  6, 12,  4, 10,  2,  8,  0);
-    /* clang-format on */
 
     /* Raw pixels */
     __m256i ymm_bgra1, ymm_bgra2;
@@ -412,10 +405,6 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_from_bgrx_avx2(const uint32_t * in,
     ymm_co1 = _mm256_srai_epi16(ymm_co1, 1);
     ymm_cg1 = _mm256_srai_epi16(ymm_cg1, 2);
 
-    /* Downconvert luma from signed 16-bit to unsigned 8-bit
-       Note: Either saturation or truncation works for luma */
-    ymm_y1 = _mm256_packus_epi16(ymm_y1, ymm_y1);
-
     /* Average neighboring chroma samples */
     ymm_co1 = _mm256_madd_epi16(ymm_co1, ymm_one16);
     ymm_co1 = _mm256_srai_epi32(ymm_co1, 1);
@@ -423,10 +412,13 @@ YCOCG_AVX2 YCOCG_INLINE void ycocg_yuy2_from_bgrx_avx2(const uint32_t * in,
     ymm_cg1 = _mm256_madd_epi16(ymm_cg1, ymm_one16);
     ymm_cg1 = _mm256_srai_epi32(ymm_cg1, 1);
 
-    /* Pack, shuffle and permute output */
-    ymm_yuy2 = _mm256_packs_epi32(ymm_co1, ymm_cg1);
-    ymm_yuy2 = _mm256_shuffle_epi8(ymm_yuy2, ymm_shuf_chroma);
-    ymm_yuy2 = _mm256_unpacklo_epi8(ymm_y1, ymm_yuy2);
+    /* Assemble macropixels */
+    ymm_co1  = _mm256_slli_epi32(ymm_co1, 8);
+    ymm_cg1  = _mm256_slli_epi32(ymm_cg1, 24);
+    ymm_yuy2 = _mm256_blend_epi16(ymm_co1, ymm_cg1, 0xAA);
+    ymm_yuy2 = _mm256_or_si256(ymm_yuy2, ymm_y1);
+
+    /* Permute output */
     ymm_yuy2 = _mm256_permute4x64_epi64(ymm_yuy2, _MM_SHUFFLE(3, 1, 2, 0));
 
     /* Write macropixels */
